@@ -61,8 +61,5 @@ int kernel_main(void *td, struct args *args)
     printf("[HEN] Applying fpkg hooks\n");
     apply_fpkg_hooks();
 
-    printf("[HEN] Applying shellcore patches\n");
-    apply_shellcore_patches();
-
     return 0;
 }

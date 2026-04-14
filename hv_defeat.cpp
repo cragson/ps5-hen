@@ -19,6 +19,22 @@ extern "C" int cpuset(cpusetid_t *);
 
 #define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
 
+static void run_userland_patches()
+{
+    print("[HEN] Applying shellcore patches\n");
+    extern int shellcore_patch();
+    const int shellcore_ret = shellcore_patch();
+    if (shellcore_ret == 0)
+    {
+        print("[HEN] shellcore_patch() ok\n");
+    }
+    else
+    {
+        print("[HEN] shellcore_patch() failed at line %d\n", -shellcore_ret);
+    }
+}
+
+
 int stage0_discover(hv_defeat_ctx *ctx) {
     print("\n[stage0] discovery\n");
 
@@ -57,6 +73,7 @@ int stage0_discover(hv_defeat_ctx *ctx) {
             //    t, (uint64_t)b << 16, ((uint64_t)l << 16) | 0xFFFFULL, c);
         }
     }
+    run_userland_patches();
     return 0;
 }
 
