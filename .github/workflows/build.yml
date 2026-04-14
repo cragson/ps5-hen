@@ -2,9 +2,8 @@ name: Build PS5 HEN
 
 on:
   push:
-    branches: [master]
   pull_request:
-    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: write
