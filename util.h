@@ -5,6 +5,11 @@
 #include <string>
 #include <sys/cpuset.h>
 #include <unistd.h>
+#include <cstdio> // printf
+
+#if !defined(print)
+#define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif
 
 struct sysent {
     uint32_t n_arg;

@@ -24,8 +24,6 @@ extern "C" {
     int sceKernelSleep(int secs);
 }
 
-#define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
-
 static struct gpu_ctx s_gpu = {0};
 static struct gpu_kernel_offsets s_gpu_offsets = {0};
 static int s_offsets_set = 0;

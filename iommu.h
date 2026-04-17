@@ -23,8 +23,6 @@ struct iommu_ctx {
     uint64_t mmio_va;   // DMAP VA of IOMMU MMIO base
 };
 
-#define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
-
 static inline int iommu_init(iommu_ctx *ctx, uint64_t dmap, uint64_t kbase, uint32_t fw) {
     uint64_t softc_off = fw_off(fw, "IOMMU_SOFTC");
     if (!softc_off) {

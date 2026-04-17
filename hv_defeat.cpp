@@ -17,8 +17,6 @@ extern "C" int cpuset(cpusetid_t *);
 #include "iommu.h"
 #include "patches.h"
 
-#define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
-
 static void run_userland_patches()
 {
     print("[HEN] Applying shellcore patches\n");
