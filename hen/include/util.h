@@ -13,7 +13,6 @@ void memcpy(void *dest, const void *src, size_t n);
 size_t strlen(const char *str);
 char *strstr(const char *str, const char *substring);
 int strncmp(const char * s1, const char * s2, size_t n);
-bool if_exists(const char * path);
 
 extern void *curthread;
 

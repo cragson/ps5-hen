@@ -234,17 +234,3 @@ int strncmp(const char * s1, const char * s2, size_t n)
         return (*(unsigned char *) s1 - *(unsigned char *) s2);
     }
 }
-
-bool if_exists(const char *path) {
-    auto kernel_fopen =
-        (void *(*)(const char*, unsigned int, unsigned int, int*))
-        kdlsym(KERNEL_SYM_SYS_FOPEN);
-
-    if (!kernel_fopen)
-        return false;
-
-    int error = 0;
-    void* file_ptr = kernel_fopen(path, 0, 0, &error);
-
-    return (file_ptr != nullptr && error == 0);
-}

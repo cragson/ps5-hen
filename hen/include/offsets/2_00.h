@@ -36,7 +36,6 @@ uint64_t g_sym_map_200[] = {
     0x08252C0,          // KERNEL_SYM_SHA256_HMAC
     0x02E5870,          // KERNEL_SYM_SCE_SBL_SERVICE_CRYPT_ASYNC
     0x0725F00,          // KERNEL_SYM_SCE_SBL_FINALIZE_CRYPT_ASYNC
-    0x036D890,          // KERNEL_SYM_SYS_FOPEN
 };
 
 #endif // OFFSETS_2_00_H
