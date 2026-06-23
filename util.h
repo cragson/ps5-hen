@@ -218,3 +218,36 @@ static inline uint64_t page_remove_global (uint64_t va)
     }
     return 0;
 }
+
+// Helper to traverse the whole paging structure to set RW and remove XO
+// Called recursively
+static inline void walk_pages_and_set_RW (int level, uint64_t table_start_pa) {
+    for (uint64_t i=0; i<0x200; i++) {
+        uint64_t entry = kr8(get_dmap_addr(table_start_pa + i*8));
+
+        // Process only if page entry present
+        if (!PDE_FIELD(entry, PRESENT))
+            continue;
+
+        uint8_t update = 0;
+        // Set RW bit on this level
+        if (!PDE_FIELD(entry, RW)) {
+            SET_PDE_BIT(entry, RW);
+            update = 1;
+        }
+        // Unset XO on this level
+        if (PDE_FIELD(entry, XOTEXT)) {
+            CLEAR_PDE_BIT(entry, XOTEXT);
+            update = 1;
+        }
+        if (update) {
+            kw8(get_dmap_addr(table_start_pa + i*8), entry);
+        }
+
+        // If level 1 or 2 are super page we don't drill down
+        if (((level == 1 || level == 2) && PDE_FIELD(entry, PS)) || (level == 3))
+            continue;
+
+        walk_pages_and_set_RW(level+1, PDE_ADDR(entry));
+    }
+}

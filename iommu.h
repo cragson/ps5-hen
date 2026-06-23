@@ -6,8 +6,8 @@
 #include "util.h"
 
 // Command buffer MMIO offsets
-#define IOMMU_MMIO_CB_HEAD   0xa000
-#define IOMMU_MMIO_CB_TAIL   0xa008
+#define IIOMMU_MMIO_CB3_HEAD  0xe000
+#define IOMMU_MMIO_CB3_TAIL   0xe008
 
 // Queue constants
 #define IOMMU_CB_SIZE        0x2000
@@ -16,11 +16,13 @@
 
 // IOMMU softc field offsets
 #define IOMMU_SC_MMIO_VA     0x40
-#define IOMMU_SC_CB1_PTR     0x78
+#define IOMMU_SC_CB3_PTR     0x80
+#define IOMMU_SC_CB3_INDEX   0x88
 
 struct iommu_ctx {
     uint64_t cb_base;   // kernel VA of command buffer
     uint64_t mmio_va;   // DMAP VA of IOMMU MMIO base
+    uint64_t cb_index;  // kernel internal command buffer index
 };
 
 #define print(fmt, ...) printf(fmt, ##__VA_ARGS__)
@@ -39,7 +41,8 @@ static inline int iommu_init(iommu_ctx *ctx, uint64_t dmap, uint64_t kbase, uint
     }
 
     ctx->mmio_va = kr8(softc + IOMMU_SC_MMIO_VA);
-    ctx->cb_base = kr8(softc + IOMMU_SC_CB1_PTR);
+    ctx->cb_base = kr8(softc + IOMMU_SC_CB3_PTR);
+    ctx->cb_index = softc + IOMMU_SC_CB3_INDEX;
 
     if (!ctx->cb_base || !ctx->mmio_va) {
         print("[iommu] cb_base=0x%lx mmio=0x%lx - not initialized\n",
@@ -54,14 +57,15 @@ static inline int iommu_init(iommu_ctx *ctx, uint64_t dmap, uint64_t kbase, uint
 
 // Submit a single 16-byte command and wait for completion
 static inline void iommu_submit_cmd(iommu_ctx *ctx, const void *cmd) {
-    uint64_t curr_tail = kr8(ctx->mmio_va + IOMMU_MMIO_CB_TAIL);
+    uint64_t curr_tail = kr8(ctx->mmio_va + IOMMU_MMIO_CB3_TAIL);
     uint64_t next_tail = (curr_tail + IOMMU_CMD_ENTRY_SIZE) & IOMMU_CB_MASK;
 
     kernel_copyin(cmd, ctx->cb_base + curr_tail, IOMMU_CMD_ENTRY_SIZE);
-    kw8(ctx->mmio_va + IOMMU_MMIO_CB_TAIL, next_tail);
+    kw8(ctx->mmio_va + IOMMU_MMIO_CB3_TAIL, next_tail);
+    kw8(ctx->cb_index, next_tail);
 
-    while (kr8(ctx->mmio_va + IOMMU_MMIO_CB_HEAD) !=
-           kr8(ctx->mmio_va + IOMMU_MMIO_CB_TAIL))
+    while (kr8(ctx->mmio_va + IIOMMU_MMIO_CB3_HEAD) !=
+           kr8(ctx->mmio_va + IOMMU_MMIO_CB3_TAIL))
         ;
 }
 
