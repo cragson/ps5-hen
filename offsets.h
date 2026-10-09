@@ -59,7 +59,7 @@ static const std::unordered_map<std::string, uint64_t> fw_offsets = {
     {"0102_BUS_DATA_DEVICES",    0x1D6D478},
     {"0102_HV_VCPU",             0x1398},
     {"0102_HV_VCPU_CPUID",       0x128},
-    {"0102_VMSPACE_VM_VMID",     0x1E4},
+    {"0102_VMSPACE_VM_VMID",     0x1D4},
     {"0102_VMSPACE_VM_PMAP",     0x1D0},
     {"0102_PMAP_PM_PML4",        0x020},
     {"0102_PMAP_PM_CR3",         0x028},
